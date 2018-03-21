@@ -1,23 +1,28 @@
 var request = require("request");
 var _ = require("lodash");
-var util = require("util");
-var dns = require('dns');
 var dig = require('node-dig-dns');
 require('dotenv').config();
 
+function getOrDie(variable, variable_name) {
+    if(variable === undefined) {
+        throw new Error("Unable to load variable "+variable_name+" with value "+variable);
+    }
 
-const CLOUDFLARE_USER = process.env.CF_EMAIL;
-const CLOUDFLARE_APIKEY = process.env.CF_KEY;
-const CERTBOT_DOMAIN = process.env.CERTBOT_DOMAIN;
-const CERTBOT_VALIDATION = process.env.CERTBOT_VALIDATION;
+    return variable;
+}
+
+const CLOUDFLARE_USER       = getOrDie(process.env.CF_EMAIL, "process.env.CF_EMAIL");
+const CLOUDFLARE_APIKEY     = getOrDie(process.env.CF_KEY, "process.env.CF_KEY");
+const CERTBOT_DOMAIN        = getOrDie(process.env.CERTBOT_DOMAIN, "process.env.CERTBOT_DOMAIN");
+const CERTBOT_VALIDATION    = getOrDie(process.env.CERTBOT_VALIDATION, "process.env.CERTBOT_VALIDATION");
 
 // Debug block
-console.log('/------------------- DEBUG -------------------/');
+console.log('/------------------- HOOK START -------------------/');
 console.log('Cloudflare User:    '+CLOUDFLARE_USER);
 console.log('Cloudflare Key:     '+CLOUDFLARE_APIKEY);
 console.log('Certbot Domain:     '+CERTBOT_DOMAIN);
 console.log('Certbot Validation: '+CERTBOT_VALIDATION);
-console.log('/----------------- END DEBUG -----------------/');
+console.log('');
 
 /**
  * Refer to https://api.cloudflare.com for more information on CloudFlare API calls
@@ -44,9 +49,6 @@ function getZoneID() {
                 if(body.success.toString() !== "true") {
                     reject(new Error(body.errors[0].message));
                 }
-                //console.log(error);
-                //console.log(response);
-                //console.log(body);
 
                 var matchedDomain = _.find(body.result, function(domain) {
                     //console.log("Checking domain: "+domain.name+" against "+CERTBOT_DOMAIN);
@@ -82,18 +84,12 @@ function getRRID(zone_id) {
                 if(body.success.toString() !== "true") {
                     reject(new Error(body.errors[0].message));
                 }
-                //console.log(error);
-                //console.log(response);
-                //console.log(body);
-
 
                 var matchedRR = _.find(body.result, {'type': 'TXT', 'name': '_acme-challenge.'+CERTBOT_DOMAIN });
 
                 if(typeof matchedRR === "undefined") {
-                    console.log("No RR Found");
                     resolve([zone_id, undefined]);
                 } else {
-                    console.log("Matched RR: %j", matchedRR.id);
                     resolve([zone_id, matchedRR.id]);
                 }
             });
@@ -165,39 +161,7 @@ function waitForUpdate() {
         function(resolve,reject) {
             console.log("Validating RR after for cache expiry");
             digDNS(resolve, reject,3);
-            //checkDNS(resolve, reject, 10, 60*1000);
     });
-}
-
-function checkDNS(resolve, reject, retries, waitTimeout) {
-    var count = retries || 5; // Default to 5 if we haven't been set.
-    var timeout = waitTimeout || 60000;
-    count--;
-
-
-    dns.resolveTxt("_acme-challenge." + CERTBOT_DOMAIN, function (err, rr) {
-        console.log('Expected: '+CERTBOT_VALIDATION);
-        console.log('Received: '+rr);
-
-        if (rr == CERTBOT_VALIDATION) {
-            console.log("Update Complete");
-            resolve("Update Complete");
-
-        } else {
-
-            console.log("Update Failed or Pending - "+count+" more tries");
-            if(count > 0) {
-                setTimeout(
-                    function() {checkDNS(resolve, reject, count, timeout)},
-                    timeout
-                );
-            } else {
-                reject(new Error("Update Failed or Pending"));
-            }
-        }
-    });
-
-
 }
 
 
@@ -209,9 +173,7 @@ function digDNS(resolve, reject, retries) {
     dig(["_acme-challenge." + CERTBOT_DOMAIN, 'TXT'])
         .then(function(result) {
             var answer = result.answer[0];
-            console.log(answer);
-            console.log('Expected: '+'"'+CERTBOT_VALIDATION+'"');
-            console.log('Received: '+answer.value);
+
             if(answer.value == '"'+CERTBOT_VALIDATION+'"'){ // dig gives us the TXT record with quotes so we just live with it
                 resolve("Update Complete");
             } else {
@@ -242,7 +204,16 @@ getZoneID()
     .then(updateRRID)
     .then(waitForUpdate)
     .then(
-        function(result) {console.log("Promise returned %s", result)}
-        )
-    .catch(function(err) {console.log('Caught Error: %s', err.message)});
+        function(result) {
+            console.log("Result: %s", result);
+            console.log('/-------------------- HOOK END --------------------/');
+        })
+    .catch(function(err) {
+        console.log('Caught Error: %s', err.message);
+        console.log('/-------------------- HOOK END --------------------/');
+    });
+
+
+
+
 
