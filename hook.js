@@ -9,7 +9,13 @@ const CLOUDFLARE_APIKEY = process.env.CF_KEY;
 const CERTBOT_DOMAIN = process.env.CERTBOT_DOMAIN;
 const CERTBOT_VALIDATION = process.env.CERTBOT_VALIDATION;
 
-
+// Debug block
+console.log('/------------------- DEBUG -------------------/');
+console.log('Cloudflare User:    '+CLOUDFLARE_USER);
+console.log('Cloudflare Key:     '+CLOUDFLARE_APIKEY);
+console.log('Certbot Domain:     '+CERTBOT_DOMAIN);
+console.log('Certbot Validation: '+CERTBOT_VALIDATION);
+console.log('/----------------- END DEBUG -----------------/');
 
 /**
  * Refer to https://api.cloudflare.com for more information on CloudFlare API calls
