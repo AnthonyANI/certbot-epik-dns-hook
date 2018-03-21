@@ -1,0 +1,30 @@
+{
+  "name": "certbot-cloudflare-dns-hook",
+  "version": "1.0.0",
+  "description": "Pre-Hook for Certbot to use Cloudflare and DNS-01 Challenge",
+  "author": {
+    "name": "Daniel Hopkirk",
+    "email": "daniel@logicalroute.co.nz",
+    "url": "https://logicalroute.co.nz"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://bitbucket.org/logicalroute/certbot-cloudflare-dns-hook.git"
+  },
+  "license": "MIT",
+  "bugs": {
+    "url": "https://bitbucket.org/logicalroute/certbot-cloudflare-dns-hook/issues",
+    "email": "daniel@logicalroute.co.nz"
+  },
+  "scripts": {
+    "start": "node hook.js"
+  },
+  "dependencies": {
+    "Promise": "^1.0.5",
+    "dotenv": "^5.0.1",
+    "lodash": "^4.17.5",
+    "request": "^2.85.0",
+    "util": "^0.10.3",
+    "vasync": "^2.2.0"
+  }
+}
