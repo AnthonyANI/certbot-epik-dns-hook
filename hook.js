@@ -1,6 +1,7 @@
 var request = require("request");
 var _ = require("lodash");
 var util = require("util");
+var dns = dns = require('dns');
 require('dotenv').config();
 
 
@@ -156,11 +157,95 @@ function updateRRID(vars) {
 
 }
 
+function waitForUpdate() {
+    return new Promise(
+        function(resolve,reject) {
+            console.log("Validating RR after for cache expiry");
+
+            dns.resolveTxt("_acme-challenge."+CERTBOT_DOMAIN, function(err,rr) {
+                if (rr == CERTBOT_VALIDATION) {
+                    console.log("Update Complete");
+                    resolve("Update Complete");
+
+                } else {
+                    console.log("Update Failed or Pending - 5 more tries");
+                    setTimeout(function () {
+
+                        dns.resolveTxt("_acme-challenge." + CERTBOT_DOMAIN, function (err, rr) {
+                            if (rr == CERTBOT_VALIDATION) {
+                                console.log("Update Complete");
+                                resolve("Update Complete");
+
+                            } else {
+                                console.log("Update Failed or Pending - 4 more tries");
+                                setTimeout(function () {
+
+                                    dns.resolveTxt("_acme-challenge." + CERTBOT_DOMAIN, function (err, rr) {
+                                        if (rr == CERTBOT_VALIDATION) {
+                                            console.log("Update Complete");
+                                            resolve("Update Complete");
+
+                                        } else {
+                                            console.log("Update Failed or Pending - 3 more tries");
+                                            setTimeout(function () {
+
+                                                dns.resolveTxt("_acme-challenge." + CERTBOT_DOMAIN, function (err, rr) {
+                                                    if (rr == CERTBOT_VALIDATION) {
+                                                        console.log("Update Complete");
+                                                        resolve("Update Complete");
+
+                                                    } else {
+                                                        console.log("Update Failed or Pending - 2 more tries");
+                                                        setTimeout(function () {
+
+                                                            dns.resolveTxt("_acme-challenge." + CERTBOT_DOMAIN, function (err, rr) {
+                                                                if (rr == CERTBOT_VALIDATION) {
+                                                                    console.log("Update Complete");
+                                                                    resolve("Update Complete");
+
+                                                                } else {
+                                                                    console.log("Update Failed or Pending - 1 more tries");
+                                                                    setTimeout(function () {
+
+                                                                        dns.resolveTxt("_acme-challenge." + CERTBOT_DOMAIN, function (err, rr) {
+                                                                            if (rr == CERTBOT_VALIDATION) {
+                                                                                console.log("Update Complete");
+                                                                                resolve("Update Complete");
+
+                                                                            } else {
+                                                                                console.log("Update Failed or Pending - 0 more tries");
+                                                                                reject(new Error("Update Failed or Pending"));
+                                                                            }
+                                                                        });
+
+                                                                    }, 60000);
+                                                                }
+                                                            });
+
+                                                        }, 60000);
+                                                    }
+                                                });
+
+                                            }, 60000);
+                                        }
+                                    });
+
+                                }, 60000);
+                            }
+                        });
+
+                    }, 60000);
+                }
+            });
+    });
+}
+
 
 
 getZoneID()
     .then(getRRID)
     .then(updateRRID)
+    .then(waitForUpdate)
     .then(
         function(result) {console.log("Promise returned %s", result)}
         )
