@@ -1,7 +1,8 @@
 var request = require("request");
 var _ = require("lodash");
 var util = require("util");
-var dns = dns = require('dns');
+var dns = require('dns');
+var dig = require('node-dig-dns');
 require('dotenv').config();
 
 
@@ -163,8 +164,8 @@ function waitForUpdate() {
     return new Promise(
         function(resolve,reject) {
             console.log("Validating RR after for cache expiry");
-
-            checkDNS(resolve, reject, 5, 60*1000);
+            digDNS(resolve, reject,3);
+            //checkDNS(resolve, reject, 10, 60*1000);
     });
 }
 
@@ -176,7 +177,7 @@ function checkDNS(resolve, reject, retries, waitTimeout) {
 
     dns.resolveTxt("_acme-challenge." + CERTBOT_DOMAIN, function (err, rr) {
         console.log('Expected: '+CERTBOT_VALIDATION);
-        console.log('Recieved: '+rr);
+        console.log('Received: '+rr);
 
         if (rr == CERTBOT_VALIDATION) {
             console.log("Update Complete");
@@ -197,6 +198,41 @@ function checkDNS(resolve, reject, retries, waitTimeout) {
     });
 
 
+}
+
+
+function digDNS(resolve, reject, retries) {
+    var count = retries || 5; // Default to 5 if we haven't been set.
+    count--;
+
+
+    dig(["_acme-challenge." + CERTBOT_DOMAIN, 'TXT'])
+        .then(function(result) {
+            var answer = result.answer[0];
+            console.log(answer);
+            console.log('Expected: '+'"'+CERTBOT_VALIDATION+'"');
+            console.log('Received: '+answer.value);
+            if(answer.value == '"'+CERTBOT_VALIDATION+'"'){ // dig gives us the TXT record with quotes so we just live with it
+                resolve("Update Complete");
+            } else {
+                console.log("Update Failed or Pending - "+count+" more tries");
+                var ttl = answer.ttl;
+                var wait = parseInt(ttl) + 10;
+                console.log("Record has %s seconds before update. Waiting %s", ttl, wait);
+                if(count > 0) {
+                    setTimeout(
+                        function() {digDNS(resolve, reject, count)},
+                        wait*1000
+                    );
+                } else {
+                    reject(new Error("Update Failed or Pending"));
+                }
+            }
+        })
+        .catch(function(err) {
+            console.log('Error:', err);
+            reject(new Error('Error:', err));
+        });
 }
 
 
