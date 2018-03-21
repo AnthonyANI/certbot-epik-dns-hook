@@ -27,6 +27,7 @@ var cloudflare_headers = {"X-Auth-Email": CLOUDFLARE_USER, "X-Auth-Key": CLOUDFL
 
 
 function getZoneID() {
+    console.log("Finding Zone ID from CloudFlare.");
 
     var cfListZones = {
         method: 'GET',
@@ -47,7 +48,7 @@ function getZoneID() {
                 //console.log(body);
 
                 var matchedDomain = _.find(body.result, function(domain) {
-                    console.log("Checking domain: "+domain.name+" against "+CERTBOT_DOMAIN);
+                    //console.log("Checking domain: "+domain.name+" against "+CERTBOT_DOMAIN);
                     var domainRegex = new RegExp('.?'+domain.name+'');
                     return domainRegex.test(CERTBOT_DOMAIN);
                 });
@@ -65,6 +66,7 @@ function getZoneID() {
 }
 
 function getRRID(zone_id) {
+    console.log("Found Zone ID. Now checking if Resource Record already exists or not.");
 
     var cfListRR = {
         method: 'GET',
@@ -102,7 +104,7 @@ function getRRID(zone_id) {
 function updateRRID(vars) {
 
     if(vars[1] === undefined) {
-        console.log("Creating RR");
+        console.log("Resource Record does not exist yet. Creating it.");
         zone_id = vars[0];
 
         var cfCreateRR = {
@@ -128,7 +130,7 @@ function updateRRID(vars) {
             }
         )
     } else {
-        console.log("Updating RR");
+        console.log("Resource Record already exists. Updating it.");
         zone_id = vars[0];
         rr_id = vars[1];
 
@@ -162,82 +164,39 @@ function waitForUpdate() {
         function(resolve,reject) {
             console.log("Validating RR after for cache expiry");
 
-            dns.resolveTxt("_acme-challenge."+CERTBOT_DOMAIN, function(err,rr) {
-                if (rr == CERTBOT_VALIDATION) {
-                    console.log("Update Complete");
-                    resolve("Update Complete");
-
-                } else {
-                    console.log("Update Failed or Pending - 5 more tries");
-                    setTimeout(function () {
-
-                        dns.resolveTxt("_acme-challenge." + CERTBOT_DOMAIN, function (err, rr) {
-                            if (rr == CERTBOT_VALIDATION) {
-                                console.log("Update Complete");
-                                resolve("Update Complete");
-
-                            } else {
-                                console.log("Update Failed or Pending - 4 more tries");
-                                setTimeout(function () {
-
-                                    dns.resolveTxt("_acme-challenge." + CERTBOT_DOMAIN, function (err, rr) {
-                                        if (rr == CERTBOT_VALIDATION) {
-                                            console.log("Update Complete");
-                                            resolve("Update Complete");
-
-                                        } else {
-                                            console.log("Update Failed or Pending - 3 more tries");
-                                            setTimeout(function () {
-
-                                                dns.resolveTxt("_acme-challenge." + CERTBOT_DOMAIN, function (err, rr) {
-                                                    if (rr == CERTBOT_VALIDATION) {
-                                                        console.log("Update Complete");
-                                                        resolve("Update Complete");
-
-                                                    } else {
-                                                        console.log("Update Failed or Pending - 2 more tries");
-                                                        setTimeout(function () {
-
-                                                            dns.resolveTxt("_acme-challenge." + CERTBOT_DOMAIN, function (err, rr) {
-                                                                if (rr == CERTBOT_VALIDATION) {
-                                                                    console.log("Update Complete");
-                                                                    resolve("Update Complete");
-
-                                                                } else {
-                                                                    console.log("Update Failed or Pending - 1 more tries");
-                                                                    setTimeout(function () {
-
-                                                                        dns.resolveTxt("_acme-challenge." + CERTBOT_DOMAIN, function (err, rr) {
-                                                                            if (rr == CERTBOT_VALIDATION) {
-                                                                                console.log("Update Complete");
-                                                                                resolve("Update Complete");
-
-                                                                            } else {
-                                                                                console.log("Update Failed or Pending - 0 more tries");
-                                                                                reject(new Error("Update Failed or Pending"));
-                                                                            }
-                                                                        });
-
-                                                                    }, 60000);
-                                                                }
-                                                            });
-
-                                                        }, 60000);
-                                                    }
-                                                });
-
-                                            }, 60000);
-                                        }
-                                    });
-
-                                }, 60000);
-                            }
-                        });
-
-                    }, 60000);
-                }
-            });
+            checkDNS(resolve, reject, 5, 60*1000);
     });
+}
+
+function checkDNS(resolve, reject, retries, waitTimeout) {
+    var count = retries || 5; // Default to 5 if we haven't been set.
+    var timeout = waitTimeout || 60000;
+    count--;
+
+
+    dns.resolveTxt("_acme-challenge." + CERTBOT_DOMAIN, function (err, rr) {
+        console.log('Expected: '+CERTBOT_VALIDATION);
+        console.log('Recieved: '+rr);
+
+        if (rr == CERTBOT_VALIDATION) {
+            console.log("Update Complete");
+            resolve("Update Complete");
+
+        } else {
+
+            console.log("Update Failed or Pending - "+count+" more tries");
+            if(count > 0) {
+                setTimeout(
+                    function() {checkDNS(resolve, reject, count, timeout)},
+                    timeout
+                );
+            } else {
+                reject(new Error("Update Failed or Pending"));
+            }
+        }
+    });
+
+
 }
 
 
