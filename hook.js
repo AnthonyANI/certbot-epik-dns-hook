@@ -58,11 +58,9 @@ function getZoneID() {
 
                 if(matchedDomain === undefined) {
                     reject(new Error("Unable to find zone for domain "+CERTBOT_DOMAIN));
+                } else {
+                    resolve(matchedDomain.id);
                 }
-
-                //console.log("Matched Domain: %j", matchedDomain.id);
-
-                resolve(matchedDomain.id);
             });
         }
     )
