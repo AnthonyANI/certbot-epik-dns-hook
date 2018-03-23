@@ -183,7 +183,7 @@ function updateRRID(vars) {
 function waitForUpdate() {
     return new Promise(
         function(resolve,reject) {
-            console.log("Validating RR after for cache expiry");
+            console.log("Validating RR after cache expiry");
             digDNS(resolve, reject,3);
     });
 }
