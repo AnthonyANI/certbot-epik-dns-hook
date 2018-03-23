@@ -25,7 +25,7 @@ const CERTBOT_VALIDATION    = getOrDie(process.env.CERTBOT_VALIDATION, "process.
 const ALLOWPENDING     = process.env.CLOUDFLARE_ALLOWPENDING || false;
 
 // Output some of the JSON globs to aid debugging without the need for code changes.
-const DEBUG = process.env.CLOUDFLARE_DEBUG || true;
+const DEBUG = process.env.CLOUDFLARE_DEBUG || false;
 
 // Allows us to specify which DNS server to check against to see if we're live.
 const DNSSERVER = process.env.CERTBOT_DNS || false;
