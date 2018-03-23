@@ -180,6 +180,10 @@ however it only gets the certificates issued, you'll need to configure your soft
 sudo certbot certonly --manual --preferred-challenges dns --manual-auth-hook "/path/to/node /home/ubuntu/certbot-cloudflare-dns-hook/hook.js" -d example.com -d www.example.com --dry-run
 ```
 
+It's worth noting that if you have created all your certificates this way (including specifying the hook) you don't 
+actually need to re-specify the hook information at renewal time as they will be stored in the renewal config file for 
+certbot (`/etc/letsencrypt/renwal/example.com.conf` in my instance at least). 
+
 
 ## Development / Contributing
 
