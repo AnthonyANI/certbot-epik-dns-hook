@@ -1,6 +1,6 @@
 {
   "name": "certbot-cloudflare-dns-hook",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "Pre-Hook for Certbot to use Cloudflare and DNS-01 Challenge",
   "author": {
     "name": "Daniel Hopkirk",

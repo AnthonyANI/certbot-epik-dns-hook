@@ -28,7 +28,7 @@ const ALLOWPENDING     = process.env.CLOUDFLARE_ALLOWPENDING || false;
 const DEBUG = process.env.CLOUDFLARE_DEBUG || false;
 
 // Allows us to specify which DNS server to check against to see if we're live.
-const DNSSERVER = process.env.CERTBOT_DNS || false;
+const DNSSERVER = process.env.CERTBOT_DNS || 'aiden.ns.cloudflare.com';
 
 
 console.log('/------------------- HOOK START -------------------/');
