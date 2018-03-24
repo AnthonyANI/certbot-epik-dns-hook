@@ -1,5 +1,10 @@
 # CloudFlare DNS-01 hook for certbot
 
+> **NOTE:** It looks like as of cerbot 0.22.0 they have included their own DNS plugins including one for CloudFlare. 
+Murpy, hard at work right there. So if you are able to run 0.22.0 then that's probably a better option than my work, 
+however it is tested as working with 0.22.2 as well. Certbot's new CloudFlare doco can be found 
+[here](https://certbot-dns-cloudflare.readthedocs.io/en/latest/).
+
 Hook for automating [certbot](https://certbot.eff.org/) (formally known as letsencrypt) certificate renwal or creation using DNS-01 
 challenges with [CloudFlare](https://www.cloudflare.com).
 
@@ -23,7 +28,7 @@ resource records but we're not creating domains.
 This script has been tested with the following key versions:
 
 * Ubuntu 16.04.4 LTS (Xenial Xerus)
-* certbot 0.19.0
+* certbot 0.19.0 or 0.22.2
 * node v8.10.0
 * npm 5.6.0
 
