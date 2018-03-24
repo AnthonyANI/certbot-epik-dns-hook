@@ -1,8 +1,9 @@
 # CloudFlare DNS-01 hook for certbot
 
 > **NOTE:** It looks like as of cerbot 0.22.0 they have included their own DNS plugins including one for CloudFlare. 
-Murpy, hard at work right there. So if you are able to run 0.22.0 then that's probably a better option than my work, 
-however it is tested as working with 0.22.2 as well. Certbot's new CloudFlare doco can be found 
+Murphy, hard at work right there. I tried it personally bit the DNS plugins weren't published to the Ubunti repositories
+yet so I'm still using this script. If you are able to run 0.22.0 and get their plugins working then that's probably a 
+better option than my work, however this is tested as working with 0.22.2 as well. Certbot's new CloudFlare doco can be found 
 [here](https://certbot-dns-cloudflare.readthedocs.io/en/latest/).
 
 Hook for automating [certbot](https://certbot.eff.org/) (formally known as letsencrypt) certificate renwal or creation using DNS-01 
