@@ -41,11 +41,11 @@ npm ci
 
 ### Additional Required Steps for Windows Use
 
-You may need to install a version of the `dig` command and add it to `PATH` for use on Windows. Otherwise the script fails when validating DNS records by using `dig-dns-node`.
+You'll need to install a version of the `dig` command and add it to `PATH` for use on Windows. Otherwise the script fails when validating DNS records by using `dig-dns-node`.
 
 Follow the instructions [here](https://www.configserverfirewall.com/windows-10/dig-command-windows/).
 
->This may not resolve the problem however, and this issue is being investigated.
+>Make sure you restart your terminal so your `PATH` is reloaded after adding `dig`.
 
 
 ## Configuration

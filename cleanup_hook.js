@@ -1,6 +1,7 @@
 'use strict';
 
 const axios = require('axios').default;
+const axiosRetry = require('axios-retry');
 const chalk = require('chalk');
 const dotenv = require('dotenv');
 const util = require('util');
@@ -61,9 +62,11 @@ function getDebugConsole() {
 // (see all passed by Certbot: https://certbot.eff.org/docs/using.html#pre-and-post-validation-hooks)
 const EPIK_SIGNATURE = requireEnv('EPIK_SIGNATURE');
 const CERTBOT_DOMAIN = requireEnv('CERTBOT_DOMAIN');
+const CERTBOT_VALIDATION = requireEnv('CERTBOT_VALIDATION');
 
 // Optional environment variables
 const CERTBOT_HOST = process.env.CERTBOT_HOST || '_acme-challenge';
+const CLEANUP_ALL = process.env.CLEANUP_ALL || false;
 
 // Setup proxy console for debug (will only output if DEBUG is true)
 const debugConsole = getDebugConsole();
@@ -81,6 +84,8 @@ const EpikApi = {
 			responseType: 'json',
 			timeout: 10000 // milliseconds
 		});
+
+		axiosRetry(EpikApi.dnsHostRecords);
 	},
 
 	dnsHostRecords: null,
@@ -95,6 +100,27 @@ const EpikApi = {
 };
 
 const ChallengeResourceRecord = {
+	get() {
+		return EpikApi.dnsHostRecords.get(
+			EpikApi.URL.DOMAINS.RECORDS
+		)
+			.then(response => {
+				const record = response.data.data.records.find(record => {
+					return (
+						record.name === CERTBOT_HOST &&
+						record.type === 'TXT' &&
+						record.data === CERTBOT_VALIDATION
+					);
+				});
+
+				if (record) {
+					return record;
+				}
+
+				throw new Error('Record not found');
+			});
+	},
+
 	getAll() {
 		return EpikApi.dnsHostRecords.get(
 			EpikApi.URL.DOMAINS.RECORDS
@@ -103,6 +129,17 @@ const ChallengeResourceRecord = {
 				return response.data.data.records.filter(element => {
 					return (element.name === CERTBOT_HOST && element.type === 'TXT');
 				});
+			});
+	},
+
+	remove() {
+		console.log(
+			'Removing challenge Resource Record...'
+		);
+
+		return ChallengeResourceRecord.get()
+			.then(record => {
+				return ChallengeResourceRecord.removeById(record.id);
 			});
 	},
 
@@ -119,7 +156,7 @@ const ChallengeResourceRecord = {
 
 	removeAll() {
 		console.log(
-			'Removing existing challenge Resource Records...'
+			'Removing all challenge Resource Records...'
 		);
 
 		return ChallengeResourceRecord.getAll()
@@ -138,7 +175,7 @@ const ChallengeResourceRecord = {
 function init() {
 	console.log('/------------------- CLEANUP HOOK START -------------------/');
 
-	debugConsole.warn(chalk.yellow.bold('Debugging enabled'));
+	debugConsole.log(chalk.yellow.bold('Debugging enabled'));
 	debugConsole.log('Epik API Signature:           ' + EPIK_SIGNATURE);
 	debugConsole.log('Certbot Domain:               ' + CERTBOT_DOMAIN);
 	debugConsole.log('Certbot Host:                 ' + CERTBOT_HOST);
@@ -146,16 +183,18 @@ function init() {
 
 	EpikApi.init();
 
-	ChallengeResourceRecord.removeAll()
+	const task = CLEANUP_ALL ? ChallengeResourceRecord.removeAll : ChallengeResourceRecord.remove;
+
+	task()
 		.then(result => {
-			console.log(chalk.green.bold('Challenge Resource Records successfully cleaned up.'));
+			console.log(chalk.green.bold('Challenge Resource Record(s) successfully cleaned up.'));
 
 			result.forEach(promiseResult => {
 				debugConsole.log(util.inspect(promiseResult.data));
 			});
 		})
 		.catch(error => {
-			console.error(chalk.red.bold('Caught Error: %s'),
+			console.error(chalk.red.bold('Error: %s'),
 				error.message);
 
 			if (error.response && error.response.status === 401) {

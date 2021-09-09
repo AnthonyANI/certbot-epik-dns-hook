@@ -1,6 +1,7 @@
 'use strict';
 
 const axios = require('axios').default;
+const axiosRetry = require('axios-retry');
 const chalk = require('chalk');
 const dig = require('node-dig-dns');
 const dotenv = require('dotenv');
@@ -86,6 +87,8 @@ const EpikApi = {
 			responseType: 'json',
 			timeout: 10000 // milliseconds
 		});
+
+		axiosRetry(EpikApi.dnsHostRecords);
 	},
 
 	dnsHostRecords: null,
@@ -145,13 +148,13 @@ const ChallengeResourceRecord = {
 				util.inspect(digResult));
 
 			if (digResult.answer === undefined) {
-				return ChallengeResourceRecord.digDns.promise.rejectWithNoAnswers();
+				ChallengeResourceRecord.digDns.error.throwNoAnswersError();
 			}
 
 			const match = ChallengeResourceRecord.digDns.getValidationMatch(digResult);
 
 			if (match === undefined) {
-				return ChallengeResourceRecord.digDns.promise.rejectWithNoMatch(digResult);
+				ChallengeResourceRecord.digDns.error.throwNoMatchError(digResult);
 			}
 
 			debugConsole.log(
@@ -159,7 +162,7 @@ const ChallengeResourceRecord = {
 				util.inspect(match)
 			);
 
-			Promise.resolve(match);
+			return match;
 		},
 
 		getMaxTtl(digResult) {
@@ -178,31 +181,31 @@ const ChallengeResourceRecord = {
 			});
 		},
 
-		promise: {
-			rejectWithNoAnswers() {
-				return Promise.reject({
+		error: {
+			throwNoAnswersError() {
+				throw {
 					message:
 						chalk.red.bold('\nWARNING: ') +
 						chalk.red('No DNS TXT answers received.\n') +
 						chalk.red('If this persists, DNS caching may be the cause.\n') +
 						chalk.red('If so and all retries fail, wait and try again later.\n'),
 					ttl: 300 // wait 5 minutes by default
-				});
+				};
 			},
 
-			rejectWithNoMatch(digResult) {
-				return Promise.reject({
+			throwNoMatchError(digResult) {
+				throw {
 					message: 'None of the DNS TXT records match validation\n',
 					// Of the query answers, use the longest ttl for waiting before re-querying
 					ttl: ChallengeResourceRecord.digDns.getMaxTtl(digResult)
-				});
+				};
 			}
 		},
 
 		/**
 		 * Digs for direct TXT records only. CNAMEing to another record to use its TXT is not supported.
 		 */
-		validate(attempts = 1) {
+		validate(result, attempts = 3) {
 			attempts--;
 
 			console.log('Validating challenge Resource Record...');
@@ -211,10 +214,12 @@ const ChallengeResourceRecord = {
 				.then(ChallengeResourceRecord.digDns.checkAnswers)
 				.catch(error => {
 					if (attempts > 0) {
-						console.warn(error.message || 'Update Failed or Pending');
+						console.log(chalk.yellow(error.message || 'Update Failed or Pending'));
 
-						return ChallengeResourceRecord.digDns.waitThenRetryValidation(error.ttl,
-							attempts);
+						return ChallengeResourceRecord.digDns.waitThenRetryValidation(
+							error.ttl,
+							attempts
+						);
 					} else {
 						throw new Error('Update Failed or Pending');
 					}
@@ -237,7 +242,7 @@ const ChallengeResourceRecord = {
 				},
 				wait * 1000);
 			}).then(() => {
-				return ChallengeResourceRecord.digDns.validate(attempts);
+				return ChallengeResourceRecord.digDns.validate(null, attempts);
 			});
 		}
 	}
@@ -246,7 +251,7 @@ const ChallengeResourceRecord = {
 function init() {
 	console.log('/------------------- AUTH HOOK START -------------------/');
 
-	debugConsole.warn(chalk.yellow.bold('Debugging enabled'));
+	debugConsole.log(chalk.yellow.bold('Debugging enabled'));
 	debugConsole.log('Epik API Signature:           ' + EPIK_SIGNATURE);
 	debugConsole.log('Certbot Domain:               ' + CERTBOT_DOMAIN);
 	debugConsole.log('Certbot Host:                 ' + CERTBOT_HOST);
@@ -262,7 +267,7 @@ function init() {
 			debugConsole.log(util.inspect(result));
 		})
 		.catch(error => {
-			console.error(chalk.red.bold('Caught Error: %s'),
+			console.error(chalk.red.bold('Error: %s'),
 				error.message);
 
 			if (error.response && error.response.status === 400) {
