@@ -78,7 +78,6 @@ DEBUG=true
 **CERTBOT_DNS**
 
 Options: Any IP address or domain name of a NameServer you can query
-
 Default: `ns3.epik.com`
 
 Letsencrypt may validate against the authoritative NS for your domain. By default `ns3.epik.com` is used as the most likely candidate. 
@@ -96,7 +95,6 @@ CERTBOT_DNS=8.8.8.8
 **CERTBOT_HOST**
 
 Options: Subdomain of the domain for which the cert is being retrieved where the validation string will be stored
-
 Default: `_acme-challenge`
 
 >This is where `certbot` says to store a TXT record by default. However, it can be configured for the script alone here should that change via this `.env` variable.
@@ -104,6 +102,18 @@ Default: `_acme-challenge`
 *Example:*
 ```ini
 CERTBOT_HOST=certbotchallenge
+```
+
+**CLEANUP_ALL**
+
+Options: `true` or `false`
+Default: `false`
+
+Set this to true to instruct the cleanup script to remove all challenge TXT records rather than only those used by `certbot` each time.
+
+*Example:*
+```ini
+CLEANUP_ALL=true
 ```
 
 
@@ -118,50 +128,55 @@ isn't close enough to expiry so it is safe to automate without concern for timin
 
 > Remove `--dry-run` when you're ready and it's working
 
+If the script appears to hang, wait at least five minutes for it to continue. Validation of the new DNS records may have 
+initially failed. The script will then wait for DNS records to expire in cache before it attempts to validate them again 
+and allow `certbot` to continue. DNS records generally cache for a time-to-live (ttl) of 300 seconds (5 minutes).
+
 ```text
 certbot renew --manual --manual-auth-hook "node.exe /certbot-epik-dns-hook/hook/auth_hook.js" --manual-cleanup-hook "node.exe /certbot-epik-dns-hook/hook/cleanup_hook.js" --dry-run
 Saving debug log to C:\Certbot\log\letsencrypt.log
 
--------------------------------------------------------------------------------
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 Processing C:\Certbot\renewal\example.com.conf
--------------------------------------------------------------------------------
-Cert not due for renewal, but simulating renewal for dry run
-Plugins selected: Authenticator manual, Installer None
-Renewing an existing certificate
-Performing the following challenges:
-dns-01 challenge for example.com
-Output from node:
-/------------------- AUTH HOOK START -------------------/
-Adding new Resource Record
-Validating RR after cache expiry
-Update Failed or Pending - 2 more tries
-Record has 300 seconds before update. Waiting 310
-/-------------------- AUTH HOOK END --------------------/
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+Simulating renewal of an existing certificate for example.com and *.example.com
+Hook '--manual-auth-hook' for example.com ran with output:
+ /------------------- AUTH HOOK START -------------------/
+ Adding new challenge Resource Record...
+ /-------------------- AUTH HOOK END --------------------/
+Hook '--manual-auth-hook' for example.com ran with error output:
+ Error: Request failed with status code 400
+ Bad request. It's possible that the TXT record already exists if debugging. Please run the cleanup script first.
+Hook '--manual-auth-hook' for example.com ran with output:
+ /------------------- AUTH HOOK START -------------------/
+ Adding new challenge Resource Record...
+ Validating challenge Resource Record...
 
-Waiting for verification...
-Cleaning up challenges
+ WARNING: No DNS TXT answers received.
+ If this persists, DNS caching may be the cause.
+ If so and all retries fail, wait and try again later.
 
--------------------------------------------------------------------------------
-new certificate deployed without reload, fullchain is
-C:\Certbot\live\example.com\fullchain.pem
--------------------------------------------------------------------------------
+ Record has 300 seconds before update. Waiting 310, then retrying up to 2 more time(s)...
+ Validating challenge Resource Record...
+ Challenge Resource Record successfully added and validated.
+ /-------------------- AUTH HOOK END --------------------/
+Hook '--manual-cleanup-hook' for example.com ran with output:
+ /------------------- CLEANUP HOOK START -------------------/
+ Removing challenge Resource Record...
+ Challenge Resource Record(s) successfully cleaned up.
+ /-------------------- CLEANUP HOOK END --------------------/
+Hook '--manual-cleanup-hook' for example.com ran with output:
+ /------------------- CLEANUP HOOK START -------------------/
+ Removing challenge Resource Record...
+ Challenge Resource Record(s) successfully cleaned up.
+ /-------------------- CLEANUP HOOK END --------------------/
 
-
--------------------------------------------------------------------------------
-** DRY RUN: simulating 'certbot renew' close to cert expiry
-**          (The test certificates below have not been saved.)
-
-Congratulations, all renewals succeeded. The following certs have been renewed:
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+Congratulations, all simulated renewals succeeded:
   C:\Certbot\live\example.com\fullchain.pem (success)
-** DRY RUN: simulating 'certbot renew' close to cert expiry
-**          (The test certificates above have not been saved.)
--------------------------------------------------------------------------------
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
 ```
-
->Don't be put off if it seems to hang for a while. Once it does an update to the DNS, it waits until it sees that information
-has taken effect and is likely to be available for validation. If you understand DNS caching, this is what it's tackling; 
-if you don't, then don't worry, just know that it might wait a little while!
 
 
 ### Creating new certificates
@@ -187,7 +202,7 @@ normally be provided by running the `certbot` client. Once these are set, you ca
 
 **CERTBOT_DOMAIN**
 
-This specifies which domain you want to work with in CloudFlare. It would correlate to the domain you 
+This specifies which domain you want to work with in Epik. It would correlate to the domain you 
 are updating.
 
 *Example:*
@@ -208,7 +223,7 @@ CERTBOT_VALIDATION=ARandomStringToSetAndCompare
 
 ## Authors / Contributors
 
-* **Anthony Nave** - [AN Invent](https://aninvent.net)
+* **Anthony Nave** - [AN Invent](https://example.com)
 * **Daniel Hopkirk** - *Initial work* - [Logical Route](https://logicalroute.co.nz)
 
 
