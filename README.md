@@ -192,7 +192,25 @@ certbot certonly --manual --preferred-challenges dns --manual-auth-hook "node.ex
 
 It's worth noting that if you have created all your certificates this way (including specifying the hook) you don't 
 actually need to re-specify the hook information at renewal time as they will be stored in the renewal config file for 
-certbot (`C:\Certbot\renewal\example.com.conf` in my instance at least). 
+certbot (`C:\Certbot\renewal\example.com.conf` in my instance at least).
+
+
+### Automation
+
+Once you have the script configured and know it's functioning as expected with successful cert renewals, you can include it in an automated task. As mentioned above, if you initially used Certbot with the hooks, you may not need to do this step. The scheduled task is created after using `certbot` successfully on Windows is "Certbot Renew Task". By default, it runs twice a day: once at midnight and once at noon. It will only renew certs that need to be renewed each run. The existing "Start a program" action can be edited to run `Powershell.exe` with these arguments:
+
+```text
+-NoProfile -WindowStyle Hidden -Command "certbot renew --manual --manual-auth-hook 'node.exe /certbot-epik-dns-hook/hook/auth_hook.js' --manual-cleanup-hook 'node.exe /certbot-epik-dns-hook/hook/cleanup_hook.js'"
+```
+
+From there and as recommended for Certbot, you should point your webserver to the `fullchain.pem` and `privkey.pem` symlinks provided and updated by `certbot`. This way your webserver uses the latest cert as automatically provided. In my case, my Apache config includes these lines:
+
+```ini
+SSLCertificateFile "/Certbot/live/example.com/fullchain.pem"
+SSLCertificateKeyFile "/Certbot/live/example.com/privkey.pem"
+```
+
+Following these steps, you have successfully automated SSL certificate renewals for your Epik domains using the `dns-01` challenge with `certbot`. Enjoy!
 
 
 ## Development / Contributing
