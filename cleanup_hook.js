@@ -85,7 +85,15 @@ const EpikApi = {
 			timeout: 10000 // milliseconds
 		});
 
-		axiosRetry(EpikApi.dnsHostRecords);
+		axiosRetry(
+			EpikApi.dnsHostRecords,
+			{
+				retryCondition(error) {
+					return error.response === undefined ||
+						![400, 401].includes(error.response.status);
+				}
+			}
+		);
 	},
 
 	dnsHostRecords: null,
@@ -109,7 +117,7 @@ const ChallengeResourceRecord = {
 					return (
 						record.name === CERTBOT_HOST &&
 						record.type === 'TXT' &&
-						record.data === CERTBOT_VALIDATION
+						record.data.replace(/"/g, '') === CERTBOT_VALIDATION
 					);
 				});
 
@@ -179,6 +187,7 @@ function init() {
 	debugConsole.log('Epik API Signature:           ' + EPIK_SIGNATURE);
 	debugConsole.log('Certbot Domain:               ' + CERTBOT_DOMAIN);
 	debugConsole.log('Certbot Host:                 ' + CERTBOT_HOST);
+	debugConsole.log('Certbot Validation:           ' + CERTBOT_VALIDATION);
 	debugConsole.log('');
 
 	EpikApi.init();
@@ -189,9 +198,13 @@ function init() {
 		.then(result => {
 			console.log(chalk.green.bold('Challenge Resource Record(s) successfully cleaned up.'));
 
-			result.forEach(promiseResult => {
-				debugConsole.log(util.inspect(promiseResult.data));
-			});
+			if (Array.isArray(result)) {
+				result.forEach(promiseResult => {
+					debugConsole.log(util.inspect(promiseResult.data));
+				});
+			} else {
+				debugConsole.log(util.inspect(result.data));
+			}
 		})
 		.catch(error => {
 			console.error(chalk.red.bold('Error: %s'),

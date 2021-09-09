@@ -88,7 +88,15 @@ const EpikApi = {
 			timeout: 10000 // milliseconds
 		});
 
-		axiosRetry(EpikApi.dnsHostRecords);
+		axiosRetry(
+			EpikApi.dnsHostRecords,
+			{
+				retryCondition(error) {
+					return error.response === undefined ||
+						![400, 401].includes(error.response.status);
+				}
+			}
+		);
 	},
 
 	dnsHostRecords: null,
@@ -168,7 +176,7 @@ const ChallengeResourceRecord = {
 		getMaxTtl(digResult) {
 			return digResult.answer.reduce((maxTtl, currentAnswer) => {
 				return currentAnswer.ttl > maxTtl ? currentAnswer.ttl : maxTtl;
-			});
+			}).ttl || 0;
 		},
 
 		getValidationMatch(digResult) {
