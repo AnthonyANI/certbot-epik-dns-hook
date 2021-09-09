@@ -27,7 +27,6 @@ coverage
 build/Release
 
 # Dependency directories and files
-package-lock.json
 node_modules
 jspm_packages
 
