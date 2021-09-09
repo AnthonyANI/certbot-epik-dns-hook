@@ -72,6 +72,8 @@ const debugConsole = getDebugConsole();
  */
 const EpikApi = {
 	init() {
+		EpikApi.URL.DOMAINS.init();
+
 		EpikApi.dnsHostRecords = axios.create({
 			url: EpikApi.URL.DOMAINS.RECORDS,
 			params: {
@@ -80,8 +82,6 @@ const EpikApi = {
 			responseType: 'json',
 			timeout: 10000 // milliseconds
 		});
-
-		EpikApi.URL.DOMAINS.init();
 	},
 
 	DATA: {
