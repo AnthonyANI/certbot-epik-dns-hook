@@ -31,7 +31,7 @@
     "axios": "^0.21.4",
     "chalk": "^4.1.2",
     "dotenv": "^5.0.1",
-    "node-dig-dns": "^0.2.9",
+    "node-dig-dns": "^0.3.0",
     "util": "^0.10.3"
   },
   "devDependencies": {
@@ -49,8 +49,16 @@
         "warn",
         "consistent"
       ],
+      "array-element-newline": [
+        "error",
+        "consistent"
+      ],
       "camelcase": "warn",
       "comma-dangle": "warn",
+      "function-call-argument-newline": [
+        "error",
+        "consistent"
+      ],
       "indent": [
         "warn",
         "tab"
@@ -59,7 +67,16 @@
         "warn",
         "windows"
       ],
+      "max-len": [
+        "error",
+        {
+          "code": 120
+        }
+      ],
       "new-cap": "warn",
+      "newline-after-var": "error",
+      "newline-before-return": "error",
+      "newline-per-chained-call": "error",
       "no-confusing-arrow": "warn",
       "no-eval": "error",
       "no-multiple-empty-lines": "warn",
@@ -67,6 +84,8 @@
       "no-unused-vars": "warn",
       "no-use-before-define": "error",
       "no-var": "error",
+      "object-curly-newline": "error",
+      "object-property-newline": "error",
       "object-shorthand": "warn",
       "operator-assignment": "warn",
       "prefer-arrow-callback": "warn",

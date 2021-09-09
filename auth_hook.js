@@ -6,38 +6,6 @@ const dig = require('node-dig-dns');
 const dotenv = require('dotenv');
 const util = require('util');
 
-// Output some of the JSON globs to aid debugging without the need for code changes.
-const DEBUG = process.env.DEBUG || false;
-
-/**
- * https://javascript.plainenglish.io/javascript-how-to-intercept-function-and-method-calls-b9fd6507ff02
- */
-function getDebugConsole() {
-	return new Proxy(console, {
-		get(target, property) {
-			if (typeof target[property] === 'function') {
-				return new Proxy(target[property], {
-					apply: (target, thisArg, argumentsList) => {
-						return DEBUG ? Reflect.apply(target, thisArg, argumentsList) : false;
-					}
-				});
-			} else {
-				return Reflect.get(target, property);
-			}
-		}
-	});
-}
-
-function requireEnv(variable) {
-	const value = process.env[variable];
-
-	if (value === undefined) {
-		throw new Error('Unable to load required environment variable ' + variable);
-	}
-
-	return value;
-}
-
 // Setup dotenv
 let result = dotenv.config({
 	path: __dirname + '/../.env'
@@ -53,7 +21,45 @@ if (result.error) {
 	throw new Error('Unable to find and load .env file.');
 }
 
-// Required environment variables (see all passed by Certbot: https://certbot.eff.org/docs/using.html#pre-and-post-validation-hooks)
+function requireEnv(variable) {
+	const value = process.env[variable];
+
+	if (value === undefined) {
+		throw new Error('Unable to load required environment variable ' + variable);
+	}
+
+	return value;
+}
+
+// Output some of the JSON globs to aid debugging without the need for code changes.
+const DEBUG = process.env.DEBUG || false;
+
+/**
+ * https://javascript.plainenglish.io/javascript-how-to-intercept-function-and-method-calls-b9fd6507ff02
+ */
+function getDebugConsole() {
+	return new Proxy(console,
+		{
+			get(target, property) {
+				if (typeof target[property] === 'function') {
+					return new Proxy(target[property],
+						{
+							apply: (target, thisArg, argumentsList) => {
+								return DEBUG ? Reflect.apply(target,
+									thisArg,
+									argumentsList) : false;
+							}
+						});
+				} else {
+					return Reflect.get(target,
+						property);
+				}
+			}
+		});
+}
+
+// Required environment variables
+// (see all passed by Certbot: https://certbot.eff.org/docs/using.html#pre-and-post-validation-hooks)
 const EPIK_SIGNATURE = requireEnv('EPIK_SIGNATURE');
 const CERTBOT_DOMAIN = requireEnv('CERTBOT_DOMAIN');
 const CERTBOT_VALIDATION = requireEnv('CERTBOT_VALIDATION');
@@ -72,10 +78,8 @@ const debugConsole = getDebugConsole();
  */
 const EpikApi = {
 	init() {
-		EpikApi.URL.DOMAINS.init();
-
 		EpikApi.dnsHostRecords = axios.create({
-			url: EpikApi.URL.DOMAINS.RECORDS,
+			baseURL: EpikApi.URL.BASE,
 			params: {
 				SIGNATURE: EPIK_SIGNATURE
 			},
@@ -83,6 +87,8 @@ const EpikApi = {
 			timeout: 10000 // milliseconds
 		});
 	},
+
+	dnsHostRecords: null,
 
 	DATA: {
 		POST: {
@@ -96,30 +102,23 @@ const EpikApi = {
 		}
 	},
 
-	dnsHostRecords: null,
-
 	URL: {
-		BASE: 'https://usersapiv2.epik.com/v2/',
+		BASE: 'https://usersapiv2.epik.com/v2',
 		DOMAINS: {
-			init() {
-				EpikApi.URL.DOMAINS.BASE = EpikApi.URL.BASE + '/domains/';
-				EpikApi.URL.DOMAINS.RECORDS = EpikApi.URL.DOMAINS.BASE + CERTBOT_DOMAIN + '/records';
-			},
-
-			BASE: null,
-			RECORDS: null
+			BASE: '/domains',
+			RECORDS: '/domains/' + CERTBOT_DOMAIN + '/records'
 		}
 	}
 };
 
 const ChallengeResourceRecord = {
 	add() {
-		console.log('Adding new challenge Resource Record');
+		console.log('Adding new challenge Resource Record...');
 
-		return EpikApi.dnsHostRecords.request({
-			method: 'post',
-			data: EpikApi.DATA.POST
-		});
+		return EpikApi.dnsHostRecords.post(
+			EpikApi.URL.DOMAINS.RECORDS,
+			EpikApi.DATA.POST
+		);
 	},
 
 	digDns: {
@@ -142,7 +141,8 @@ const ChallengeResourceRecord = {
 		},
 
 		checkAnswers(digResult) {
-			debugConsole.log(chalk.cyan('Dig Result: %s') + '\n', util.inspect(digResult));
+			debugConsole.log(chalk.cyan('Dig Result: %s') + '\n',
+				util.inspect(digResult));
 
 			if (digResult.answer === undefined) {
 				return ChallengeResourceRecord.digDns.promise.rejectWithNoAnswers();
@@ -213,7 +213,8 @@ const ChallengeResourceRecord = {
 					if (attempts > 0) {
 						console.warn(error.message || 'Update Failed or Pending');
 
-						return ChallengeResourceRecord.digDns.waitThenRetryValidation(error.ttl, attempts);
+						return ChallengeResourceRecord.digDns.waitThenRetryValidation(error.ttl,
+							attempts);
 					} else {
 						throw new Error('Update Failed or Pending');
 					}
@@ -233,7 +234,8 @@ const ChallengeResourceRecord = {
 			return new Promise(resolve => {
 				setTimeout(() => {
 					resolve();
-				}, wait * 1000);
+				},
+				wait * 1000);
 			}).then(() => {
 				return ChallengeResourceRecord.digDns.validate(attempts);
 			});
@@ -244,6 +246,7 @@ const ChallengeResourceRecord = {
 function init() {
 	console.log('/------------------- AUTH HOOK START -------------------/');
 
+	debugConsole.warn(chalk.yellow.bold('Debugging enabled'));
 	debugConsole.log('Epik API Signature:           ' + EPIK_SIGNATURE);
 	debugConsole.log('Certbot Domain:               ' + CERTBOT_DOMAIN);
 	debugConsole.log('Certbot Host:                 ' + CERTBOT_HOST);
@@ -255,10 +258,25 @@ function init() {
 	ChallengeResourceRecord.add()
 		.then(ChallengeResourceRecord.digDns.validate)
 		.then(result => {
-			console.log(chalk.green.bold('Result: %s'), result);
+			console.log(chalk.green.bold('Challenge Resource Record successfully added and validated.'));
+			debugConsole.log(util.inspect(result));
 		})
 		.catch(error => {
-			console.error(chalk.red.bold('Caught Error: %s'), error.message);
+			console.error(chalk.red.bold('Caught Error: %s'),
+				error.message);
+
+			if (error.response && error.response.status === 400) {
+				console.error(
+					chalk.red(
+						'Bad request. It\'s possible that the TXT record already exists if debugging. ' +
+						'Please run the cleanup script first.'
+					)
+				);
+			}
+
+			if (error.response && error.response.status === 401) {
+				console.error(chalk.red('Unauthorized. Make sure your EPIK_SIGNATURE is correct.'));
+			}
 		})
 		.finally(() => {
 			console.log('/-------------------- AUTH HOOK END --------------------/');
