@@ -111,7 +111,7 @@ isn't close enough to expiry so it is safe to automate without concern for timin
 > Remove `--dry-run` when you're ready and it's working
 
 ```text
-certbot renew --manual --manual-auth-hook "/path/to/node /certbot-epik-dns-hook/auth_hook.js" --manual-cleanup-hook "/path/to/node /certbot-epik-dns-hook/cleanup_hook.js" --dry-run
+certbot renew --manual --manual-auth-hook "/path/to/node /certbot-epik-dns-hook/hook/auth_hook.js" --manual-cleanup-hook "/path/to/node /certbot-epik-dns-hook/hook/cleanup_hook.js" --dry-run
 Saving debug log to C:\Certbot\log\letsencrypt.log
 
 -------------------------------------------------------------------------------
@@ -164,7 +164,7 @@ however it only gets the certificates issued, you'll need to configure your soft
 > Remove `--dry-run` when you're ready and it's working. DON'T try running it verbatim with the example domains!
 
 ```shell
-certbot certonly --manual --preferred-challenges dns --manual-auth-hook "/path/to/node /certbot-epik-dns-hook/auth_hook.js" --manual-cleanup-hook "/path/to/node /certbot-epik-dns-hook/cleanup_hook.js" -d example.com -d *.example.com --dry-run
+certbot certonly --manual --preferred-challenges dns --manual-auth-hook "/path/to/node /certbot-epik-dns-hook/hook/auth_hook.js" --manual-cleanup-hook "/path/to/node /certbot-epik-dns-hook/hook/cleanup_hook.js" -d example.com -d *.example.com --dry-run
 ```
 
 It's worth noting that if you have created all your certificates this way (including specifying the hook) you don't 
