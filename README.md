@@ -32,9 +32,11 @@ This script has been tested with the following key versions:
 
 ```shell
 cd /
-git clone https://github.com/AnthonyANI/certbot-epik-dns-hook.git
+mkdir certbot-epik-dns-hook
 cd certbot-epik-dns-hook
-npm i
+git clone https://github.com/AnthonyANI/certbot-epik-dns-hook.git hook
+cd hook
+npm ci
 ```
 
 
