@@ -32,8 +32,8 @@ This script has been tested with the following key versions:
 
 ```shell
 cd /
-git clone GIT_CLONE_URL_HERE
-cd certbot-cloudflare-dns-hook
+git clone https://github.com/AnthonyANI/certbot-epik-dns-hook.git
+cd certbot-epik-dns-hook
 npm i
 ```
 
@@ -212,4 +212,4 @@ Generally, use it and abuse it. Optional references to original authors would be
 
 * This is but a helper to the great service from [LetsEncrypt](https://letsencrypt.org/). Much respect and thanks to 
 them making SSL much more accessible.
-* The [certbot-cloudflare-dns-hook](https://bitbucket.org/logicalroute/certbot-cloudflare-dns-hook) was the original script cloned and adapted for use with Epik DNS
+* The [certbot-cloudflare-dns-hook](https://bitbucket.org/logicalroute/certbot-cloudflare-dns-hook) is the original script cloned and adapted for use with Epik DNS
