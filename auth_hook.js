@@ -238,7 +238,7 @@ const ChallengeResourceRecord = {
 			const wait = parseInt(seconds || 0) + 10;
 
 			console.log(
-				'Waiting %s, then retrying up to %s more time(s)...',
+				'Waiting %s seconds, then retrying up to %s more time(s)...',
 				wait,
 				attempts
 			);
