@@ -65,6 +65,7 @@
       "no-multiple-empty-lines": "warn",
       "no-trailing-spaces": "warn",
       "no-unused-vars": "warn",
+      "no-use-before-define": "error",
       "no-var": "error",
       "object-shorthand": "warn",
       "operator-assignment": "warn",

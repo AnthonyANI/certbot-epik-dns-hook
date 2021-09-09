@@ -6,6 +6,112 @@ const dig = require('node-dig-dns');
 const dotenv = require('dotenv');
 const util = require('util');
 
+// Output some of the JSON globs to aid debugging without the need for code changes.
+const DEBUG = process.env.DEBUG || false;
+
+/**
+ * https://javascript.plainenglish.io/javascript-how-to-intercept-function-and-method-calls-b9fd6507ff02
+ */
+function getDebugConsole() {
+	return new Proxy(console, {
+		get(target, property) {
+			if (typeof target[property] === 'function') {
+				return new Proxy(target[property], {
+					apply: (target, thisArg, argumentsList) => {
+						return DEBUG ? Reflect.apply(target, thisArg, argumentsList) : false;
+					}
+				});
+			} else {
+				return Reflect.get(target, property);
+			}
+		}
+	});
+}
+
+function requireEnv(variable) {
+	const value = process.env[variable];
+
+	if (value === undefined) {
+		throw new Error('Unable to load required environment variable ' + variable);
+	}
+
+	return value;
+}
+
+// Setup dotenv
+let result = dotenv.config({
+	path: __dirname + '/../.env'
+});
+
+if (result.error) {
+	result = dotenv.config({
+		path: __dirname + '/.env'
+	});
+}
+
+if (result.error) {
+	throw new Error('Unable to find and load .env file.');
+}
+
+// Required environment variables (see all passed by Certbot: https://certbot.eff.org/docs/using.html#pre-and-post-validation-hooks)
+const EPIK_SIGNATURE = requireEnv('EPIK_SIGNATURE');
+const CERTBOT_DOMAIN = requireEnv('CERTBOT_DOMAIN');
+const CERTBOT_VALIDATION = requireEnv('CERTBOT_VALIDATION');
+
+// Optional specific subdomain at which to store certbot challenge string
+const CERTBOT_HOST = process.env.CERTBOT_HOST || '_acme-challenge';
+
+// Optional specific DNS server to check against to see if challenge records exist
+const DNSSERVER = process.env.CERTBOT_DNS || 'ns3.epik.com';
+
+// Setup proxy console for debug (will only output if DEBUG is true)
+const debugConsole = getDebugConsole();
+
+/**
+ * Refer to https://docs.userapi.epik.com/v2/ for more information on Epik API calls
+ */
+const EpikApi = {
+	init() {
+		EpikApi.dnsHostRecords = axios.create({
+			url: EpikApi.URL.DOMAINS.RECORDS,
+			params: {
+				SIGNATURE: EPIK_SIGNATURE
+			},
+			responseType: 'json',
+			timeout: 10000 // milliseconds
+		});
+
+		EpikApi.URL.DOMAINS.init();
+	},
+
+	DATA: {
+		POST: {
+			'create_host_records_payload': {
+				'HOST': CERTBOT_HOST,
+				'TYPE': 'TXT',
+				'DATA': CERTBOT_VALIDATION,
+				'AUX': 0,
+				'TTL': 300
+			}
+		}
+	},
+
+	dnsHostRecords: null,
+
+	URL: {
+		BASE: 'https://usersapiv2.epik.com/v2/',
+		DOMAINS: {
+			init() {
+				EpikApi.URL.DOMAINS.BASE = EpikApi.URL.BASE + '/domains/';
+				EpikApi.URL.DOMAINS.RECORDS = EpikApi.URL.DOMAINS.BASE + CERTBOT_DOMAIN + '/records';
+			},
+
+			BASE: null,
+			RECORDS: null
+		}
+	}
+};
+
 const ChallengeResourceRecord = {
 	add() {
 		console.log('Adding new challenge Resource Record');
@@ -135,57 +241,6 @@ const ChallengeResourceRecord = {
 	}
 };
 
-/**
- * Refer to https://docs.userapi.epik.com/v2/ for more information on Epik API calls
- */
-const EpikApi = {
-	DATA: {
-		POST: {
-			'create_host_records_payload': {
-				'HOST': CERTBOT_HOST,
-				'TYPE': 'TXT',
-				'DATA': CERTBOT_VALIDATION,
-				'AUX': 0,
-				'TTL': 300
-			}
-		}
-	},
-	dnsHostRecords: axios.create({
-		url: EpikApi.URL.DOMAINS.RECORDS,
-		params: {
-			SIGNATURE: EPIK_SIGNATURE
-		},
-		responseType: 'json',
-		timeout: 10000 // milliseconds
-	}),
-	URL: {
-		BASE: 'https://usersapiv2.epik.com/v2/',
-		DOMAINS: {
-			BASE: EpikApi.URL.BASE + '/domains/',
-			RECORDS: EpikApi.URL.DOMAINS.BASE + CERTBOT_DOMAIN + '/records'
-		}
-	}
-};
-
-/**
- * https://javascript.plainenglish.io/javascript-how-to-intercept-function-and-method-calls-b9fd6507ff02
- */
-function getDebugConsole() {
-	return new Proxy(console, {
-		get(target, property) {
-			if (typeof target[property] === 'function') {
-				return new Proxy(target[property], {
-					apply: (target, thisArg, argumentsList) => {
-						return DEBUG ? Reflect.apply(target, thisArg, argumentsList) : false;
-					}
-				});
-			} else {
-				return Reflect.get(target, property);
-			}
-		}
-	});
-}
-
 function init() {
 	console.log('/------------------- AUTH HOOK START -------------------/');
 
@@ -194,6 +249,8 @@ function init() {
 	debugConsole.log('Certbot Host:                 ' + CERTBOT_HOST);
 	debugConsole.log('Certbot Validation:           ' + CERTBOT_VALIDATION);
 	debugConsole.log('');
+
+	EpikApi.init();
 
 	ChallengeResourceRecord.add()
 		.then(ChallengeResourceRecord.digDns.validate)
@@ -207,48 +264,6 @@ function init() {
 			console.log('/-------------------- AUTH HOOK END --------------------/');
 		});
 }
-
-function requireEnv(variable) {
-	const value = process.env[variable];
-
-	if (value === undefined) {
-		throw new Error('Unable to load required environment variable ' + variable);
-	}
-
-	return value;
-}
-
-// Setup dotenv
-let result = dotenv.config({
-	path: __dirname + '/../.env'
-});
-
-if (result.error) {
-	result = dotenv.config({
-		path: __dirname + '/.env'
-	});
-}
-
-if (result.error) {
-	throw new Error('Unable to find and load .env file.');
-}
-
-// Required environment variables (see all passed by Certbot: https://certbot.eff.org/docs/using.html#pre-and-post-validation-hooks)
-const EPIK_SIGNATURE = requireEnv('EPIK_SIGNATURE');
-const CERTBOT_DOMAIN = requireEnv('CERTBOT_DOMAIN');
-const CERTBOT_VALIDATION = requireEnv('CERTBOT_VALIDATION');
-
-// Optional environment variables
-const CERTBOT_HOST = process.env.CERTBOT_HOST || '_acme-challenge';
-
-// Output some of the JSON globs to aid debugging without the need for code changes.
-const DEBUG = process.env.DEBUG || false;
-
-// Optional specific DNS server to check against to see if challenge records exist
-const DNSSERVER = process.env.CERTBOT_DNS || 'ns3.epik.com';
-
-// Setup proxy console for debug (will only output if DEBUG is true)
-const debugConsole = getDebugConsole();
 
 // Run main task
 init();
