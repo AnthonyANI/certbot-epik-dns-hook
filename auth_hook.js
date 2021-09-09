@@ -235,11 +235,10 @@ const ChallengeResourceRecord = {
 		},
 
 		waitThenRetryValidation(seconds, attempts) {
-			const wait = parseInt(seconds) + 10;
+			const wait = parseInt(seconds || 0) + 10;
 
 			console.log(
-				'Record has %s seconds before update. Waiting %s, then retrying up to %s more time(s)...',
-				seconds,
+				'Waiting %s, then retrying up to %s more time(s)...',
 				wait,
 				attempts
 			);
