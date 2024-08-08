@@ -20,12 +20,17 @@ that I modified for use with Epik's API.
 You'll need to get your [Epik API signature](https://registrar.epik.com/account/api-settings/) by adding an IP address from which 
 you'll use this script. This will be used to query, modify, and remove the DNS TXT records for your domains being used with `certbot`.
 
-This script has been tested with the following key versions:
+This script has been tested with the following versions:
 
-* Microsoft Windows 10 21H1 (10.0.19043.1165)
-* certbot 1.18.0
-* node v16.8.0
-* npm 7.21.1
+#### Ubuntu 22.04.3 LTS
+* certbot 1.21.0
+* node v22.6.0
+* npm 10.8.2
+
+#### Microsoft Windows 11 23H2 (10.0.22631 Build 22631)
+* certbot 2.1.1
+* node v20.16.0
+* npm 10.8.1
 
 
 ## Installing
