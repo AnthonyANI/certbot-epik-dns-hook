@@ -4,6 +4,7 @@ const axios = require('axios').default;
 const axiosRetry = require('axios-retry');
 const chalk = require('chalk');
 const dig = require('node-dig-dns');
+const dns = require('node:dns');
 const dotenv = require('dotenv');
 const util = require('util');
 
@@ -79,6 +80,9 @@ const debugConsole = getDebugConsole();
  */
 const EpikApi = {
 	init() {
+		// Epik API requires IPv4 currently, so default to that when available
+		dns.setDefaultResultOrder('ipv4first');
+
 		EpikApi.dnsHostRecords = axios.create({
 			baseURL: EpikApi.URL.BASE,
 			params: {

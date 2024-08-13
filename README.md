@@ -19,6 +19,8 @@ that I modified for use with Epik's API.
 
 You'll need to get your [Epik API signature](https://registrar.epik.com/account/api-settings/) by adding an IP address from which 
 you'll use this script. This will be used to query, modify, and remove the DNS TXT records for your domains being used with `certbot`.
+> [!IMPORTANT]
+> While this hook works with IPv6, Epik's API only supports IPv4 at this time. The hook will attempt to use IPv4 first where possible.
 
 This script has been tested with the following versions:
 
